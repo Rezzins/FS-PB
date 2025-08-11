@@ -12,7 +12,7 @@ async function fetchAllPlayers() {
     const res = await fetch(`${API}/players`);
     const data = await res.json();
     players = data.data.players;
-    renderAllPlayers();
+    renderLayout();
   } catch (error) {
     console.error("failed to fetch players", error);
   }
@@ -23,7 +23,6 @@ async function fetchSinglePlayer(id) {
     const res = await fetch(`${API}/players/${id}`);
     const data = await res.json();
     selectedPlayer = data.data.player;
-    app.innerHTML = "";
     renderSinglePlayer();
   } catch (error) {
     console.error("failed to fetch player", error);
@@ -32,12 +31,9 @@ async function fetchSinglePlayer(id) {
 
 async function removePlayer(id) {
   try {
-    await fetch(`${API}/players/${id}`, {
-      method: "DELETE",
-    });
+    await fetch(`${API}/players/${id}`, { method: "DELETE" });
     selectedPlayer = null;
     await fetchAllPlayers();
-    renderNoPlayerSelected();
   } catch (error) {
     console.error("issue removing player", error);
   }
@@ -56,75 +52,70 @@ async function addNewPlayer(playerObj) {
   }
 }
 
+function renderLayout() {
+  app.innerHTML = `
+    <div class="layout">
+      <div id="roster-container" class="roster"></div>
+      <div id="details-container" class="details"></div>
+    </div>
+  `;
+  renderAllPlayers();
+  renderNoPlayerSelected();
+}
+
 function renderAllPlayers() {
-  app.innerHTML = "";
   const roster = document.createElement("div");
-  roster.id = "roster";
+  roster.className = "roster-list";
 
   players.forEach((player) => {
     const card = document.createElement("div");
-    card.classList.add("player-card");
-
-    const img = document.createElement("img");
-    img.src = player.imageUrl;
-    img.alt = `${player.name} the ${player.breed}`;
-    img.style.width = "125px";
-
-    const name = document.createElement("h3");
-    name.textContent = player.name;
-
-    card.appendChild(img);
-    card.appendChild(name);
+    card.className = "player-card";
+    card.innerHTML = `
+      <img src="${player.imageUrl}" alt="${player.name}">
+      <h3>${player.name}</h3>
+    `;
     card.addEventListener("click", () => {
       fetchSinglePlayer(player.id);
     });
-
     roster.appendChild(card);
   });
 
-  app.appendChild(roster);
+  const rosterContainer = document.getElementById("roster-container");
+  rosterContainer.innerHTML = "";
+  rosterContainer.appendChild(roster);
   renderAddPlayerForm();
 }
 
 function renderSinglePlayer() {
-  const details = document.createElement("div");
-  details.id = "player-details";
-
-  details.innerHTML = `
-    <h2>${selectedPlayer.name}</h2>
-    <img src="${selectedPlayer.imageUrl}" alt="${selectedPlayer.name} the ${
-    selectedPlayer.breed
-  }">
-    <p><strong>ID:</strong> ${selectedPlayer.id}</p>
-    <p><strong>Breed:</strong> ${selectedPlayer.breed}</p>
-    <p><strong>Status:</strong> ${selectedPlayer.status}</p>
-    <p><strong>Team:</strong> ${selectedPlayer.team?.name || "No team"}</p>
-    `;
-
-  const removeBtm = document.createElement("button");
-  removeBtm.textContent = "Remove from roster";
-  removeBtm.addEventListener("click", () => removePlayer(selectedPlayer.id));
-  details.appendChild(removeBtm);
-  app.appendChild(details);
+  const detailsContainer = document.getElementById("details-container");
+  detailsContainer.innerHTML = `
+    <div class="player-details">
+      <h2>${selectedPlayer.name}</h2>
+      <img src="${selectedPlayer.imageUrl}" alt="${selectedPlayer.name}">
+      <p><strong>ID:</strong> ${selectedPlayer.id}</p>
+      <p><strong>Breed:</strong> ${selectedPlayer.breed}</p>
+      <p><strong>Status:</strong> ${selectedPlayer.status}</p>
+      <p><strong>Team:</strong> ${selectedPlayer.team?.name || "No team"}</p>
+      <button class="remove-btn">Remove from roster</button>
+    </div>
+  `;
+  detailsContainer.querySelector(".remove-btn").addEventListener("click", () => removePlayer(selectedPlayer.id));
 }
 
 function renderNoPlayerSelected() {
-  const message = document.createElement("p");
-  message.textContent = "Select a player to view.";
-  app.appendChild(message);
+  const detailsContainer = document.getElementById("details-container");
+  detailsContainer.innerHTML = `<p class="placeholder">Select a player to view.</p>`;
 }
 
 function renderAddPlayerForm() {
   const form = document.createElement("form");
-  form.id = "add-player-form";
-
+  form.className = "add-player-form";
   form.innerHTML = `
     <h3>Add New Player</h3>
     <input type="text" name="name" placeholder="Name" required>
     <input type="text" name="breed" placeholder="Breed" required>
     <button type="submit">Add Player</button>
-    `;
-
+  `;
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
@@ -134,7 +125,8 @@ function renderAddPlayerForm() {
     await addNewPlayer({ name, breed });
     form.reset();
   });
-  app.appendChild(form);
+
+  document.getElementById("roster-container").appendChild(form);
 }
 
 fetchAllPlayers();
